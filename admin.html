@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Darwash · Administración</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FCF7F7;--surface:#FFFFFF;--surface-2:#F5F4EE;
+    --border:#E5E5E0;--border-strong:#D4D2C8;
+    --text:#1A1A1A;--text-2:#4A4A48;--muted:#8A8880;
+    --cyan:#00B5B6;--cyan-soft:#E6F8F8;
+    --green:#00A86B;--green-soft:#E6F7EF;
+    --amber:#B8881F;--amber-soft:#FBF3DC;
+    --red:#D63B47;--red-soft:#FCE8EA;
+    --blue:#2E7AC7;--blue-soft:#E8F0FA;
+    --serif:'Lora',Georgia,serif;
+    --sans:'Inter',-apple-system,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',Consolas,Monaco,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh;}
+
+  .lf-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;}
+  .lf-logo{width:36px;height:36px;border-radius:8px;background:var(--cyan);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif);font-weight:700;font-size:13px;flex-shrink:0;}
+  .lf-wordmark-wrap{display:flex;align-items:baseline;gap:6px;flex:1;min-width:0;}
+  .lf-wordmark{font-family:var(--serif);font-weight:700;font-size:14px;letter-spacing:1.2px;}
+  .lf-wordmark-sub{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .lf-badge{font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:1.5px;padding:4px 10px;border-radius:4px;border:1px solid var(--amber);background:var(--amber-soft);color:var(--amber);text-transform:uppercase;}
+  .who{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.5px;}
+  .link-out{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:underline;}
+
+  .wrap{max-width:900px;margin:0 auto;padding:16px 16px 80px;}
+  .lf-section-label{font-family:var(--mono);font-weight:600;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:24px 0 10px;display:flex;align-items:center;gap:8px;}
+  .lf-section-label::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  .lf-field{margin-bottom:10px;}
+  .lf-field-label{font-family:var(--mono);font-weight:500;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;display:block;}
+  .lf-input,.lf-select,.lf-textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 12px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none;transition:border-color 150ms;-webkit-appearance:none;}
+  .lf-input:focus,.lf-select:focus,.lf-textarea:focus{border-color:var(--cyan);}
+  .lf-input::placeholder{color:var(--border-strong);}
+  .lf-select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  @media(max-width:560px){.row-2,.row-3{grid-template-columns:1fr;}}
+
+  .lf-btn{border:1px solid transparent;border-radius:6px;padding:13px 16px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .lf-btn:active{opacity:.85;}
+  .lf-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-primary{background:var(--cyan);color:#fff;border-color:var(--cyan);width:100%;}
+  .btn-ghost{background:transparent;border-color:var(--border-strong);color:var(--text-2);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;}
+  .card.accent{border-left:3px solid var(--cyan);}
+
+  /* TABS */
+  .tabs{display:flex;gap:6px;margin-bottom:4px;border-bottom:1px solid var(--border);}
+  .tab{font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:11px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;}
+  .tab.on{color:var(--cyan);border-bottom-color:var(--cyan);}
+
+  /* LISTAS */
+  .item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;}
+  .item.abierto{border-left:3px solid var(--green);}
+  .item.cerrado{border-left:3px solid var(--border-strong);opacity:.72;}
+  .item.inactivo{border-left:3px solid var(--border-strong);opacity:.6;}
+  .item.activo{border-left:3px solid var(--cyan);}
+  .item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px;}
+  .item-title{font-family:var(--sans);font-weight:600;font-size:15px;}
+  .item-meta{font-family:var(--sans);font-size:11.5px;color:var(--muted);line-height:1.6;}
+  .item-code{font-family:var(--mono);font-size:10.5px;color:var(--text-2);letter-spacing:.5px;}
+  .pill{font-family:var(--mono);font-weight:600;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:4px;border:1px solid;white-space:nowrap;}
+  .pill.g{color:var(--green);border-color:var(--green);background:var(--green-soft);}
+  .pill.n{color:var(--muted);border-color:var(--border-strong);background:var(--surface-2);}
+  .pill.c{color:var(--cyan);border-color:var(--cyan);background:var(--cyan-soft);}
+  .pill.a{color:var(--amber);border-color:var(--amber);background:var(--amber-soft);}
+  .item-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .mini{font-family:var(--mono);font-weight:600;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:7px 11px;border-radius:4px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-2);cursor:pointer;}
+  .mini.cy{border-color:var(--cyan);color:var(--cyan);}
+  .mini.rd{border-color:var(--red);color:var(--red);}
+  .mini.bl{border-color:var(--blue);color:var(--blue);}
+  .empty{font-family:var(--sans);font-size:12.5px;color:var(--muted);text-align:center;padding:20px;border:1.5px dashed var(--border-strong);border-radius:6px;}
+
+  /* LOGIN */
+  .login-wrap{max-width:360px;margin:0 auto;padding:56px 20px;}
+  .login-title{font-family:var(--serif);font-weight:600;font-size:20px;text-align:center;margin-bottom:6px;}
+  .login-sub{font-family:var(--sans);font-size:12.5px;color:var(--muted);text-align:center;margin-bottom:24px;}
+  .err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:10px 12px;font-size:12.5px;margin-bottom:10px;display:none;}
+  .ok-box{background:var(--green-soft);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:10px 12px;font-size:12.5px;margin-bottom:10px;display:none;word-break:break-all;}
+  .hint{font-family:var(--sans);font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:6px;}
+  .hidden{display:none!important;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:6px;opacity:0;pointer-events:none;transition:.22s;z-index:100;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="lf-header">
+  <div class="lf-logo">DRW</div>
+  <div class="lf-wordmark-wrap">
+    <span class="lf-wordmark">DARWASH</span>
+    <span class="lf-wordmark-sub">ADMIN</span>
+  </div>
+  <span id="who" class="who"></span>
+  <button id="salir" class="link-out hidden" type="button">Salir</button>
+  <span class="lf-badge">Panel</span>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="login-wrap">
+  <div class="login-title">Panel de administración</div>
+  <div class="login-sub">Entrá con tu usuario de Darwash</div>
+  <div class="err" id="login-err"></div>
+  <div class="lf-field">
+    <label class="lf-field-label">Email</label>
+    <input class="lf-input" id="in-email" type="email" placeholder="admin@darwash.local" autocomplete="username"/>
+  </div>
+  <div class="lf-field">
+    <label class="lf-field-label">Contraseña</label>
+    <input class="lf-input" id="in-pass" type="password" autocomplete="current-password"/>
+  </div>
+  <button class="lf-btn btn-primary" id="btn-login">Entrar</button>
+</div>
+
+<!-- PANEL -->
+<div id="panel" class="wrap hidden">
+  <div class="tabs">
+    <button class="tab on" data-t="remates" type="button">Remates</button>
+    <button class="tab" data-t="comisionistas" type="button">Comisionistas</button>
+    <button class="tab" data-t="acceso" type="button">Acceso</button>
+  </div>
+
+  <!-- ══ REMATES ══ -->
+  <div id="tab-remates">
+    <div class="lf-section-label">Nuevo remate</div>
+    <div class="card accent">
+      <div class="row-2">
+        <div class="lf-field">
+          <label class="lf-field-label">Nombre del remate</label>
+          <input class="lf-input" id="r-alias" type="text" placeholder="Ej. Gral. Villegas · Agosto"/>
+        </div>
+        <div class="lf-field">
+          <label class="lf-field-label">Fecha</label>
+          <input class="lf-input" id="r-fecha" type="date"/>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="lf-field">
+          <label class="lf-field-label">Plaza / predio</label>
+          <input class="lf-input" id="r-plaza" type="text" placeholder="Localidad o predio ferial"/>
+        </div>
+        <div class="lf-field">
+          <label class="lf-field-label">Código SENASA (opcional)</label>
+          <input class="lf-input" id="r-codigo" type="text" placeholder="Se carga cuando llega"/>
+        </div>
+      </div>
+      <div class="lf-field">
+        <label class="lf-field-label">Notas</label>
+        <input class="lf-input" id="r-notas" type="text" placeholder="Aclaraciones internas"/>
+      </div>
+      <button class="lf-btn btn-primary" id="btn-remate">Crear remate</button>
+      <div class="hint">El código de SENASA podés dejarlo vacío y completarlo después, cuando lo emitan.</div>
+    </div>
+
+    <div class="lf-section-label">Remates cargados</div>
+    <div id="lista-remates"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- ══ COMISIONISTAS ══ -->
+  <div id="tab-comisionistas" class="hidden">
+    <div class="lf-section-label">Nuevo comisionista</div>
+    <div class="card accent">
+      <div class="err" id="alta-err"></div>
+      <div class="row-2">
+        <div class="lf-field">
+          <label class="lf-field-label">Nombre</label>
+          <input class="lf-input" id="c-nombre" type="text" placeholder="BECERRA"/>
+        </div>
+        <div class="lf-field">
+          <label class="lf-field-label">Teléfono</label>
+          <input class="lf-input" id="c-tel" type="tel" placeholder="Opcional"/>
+        </div>
+      </div>
+      <button class="lf-btn btn-primary" id="btn-comisionista">Agregar a la lista</button>
+      <div class="hint">Aparece en el desplegable de la página de carga. Si lo desactivás, deja de aparecer pero no se pierde nada de lo que anotó.</div>
+    </div>
+
+    <div class="lf-section-label">Equipo</div>
+    <div id="lista-comisionistas"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- ══ ACCESO ══ -->
+  <div id="tab-acceso" class="hidden">
+    <div class="lf-section-label">Link de carga</div>
+    <div class="card accent">
+      <div class="item-code" id="link-carga" style="word-break:break-all;margin-bottom:10px"></div>
+      <button class="lf-btn btn-ghost" id="btn-link" style="width:100%">Copiar link</button>
+      <div class="hint">Este es el único link. Se lo mandás a todos por WhatsApp y lo guardan en el celular.</div>
+    </div>
+
+    <div class="lf-section-label">PIN de acceso</div>
+    <div class="card accent">
+      <div class="err" id="pin-err"></div>
+      <div class="lf-field">
+        <label class="lf-field-label">PIN que comparten todos</label>
+        <input class="lf-input" id="acceso-pin" type="text" inputmode="numeric" maxlength="8" placeholder="1234"/>
+      </div>
+      <button class="lf-btn btn-primary" id="btn-pin">Guardar PIN</button>
+      <div class="hint">Si lo cambiás, el PIN viejo deja de servir al instante. Avisales antes de tocarlo.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  var SUPABASE_URL='https://qkrrumlbvspbxjoxvxho.supabase.co';
+  var SUPABASE_KEY='sb_publishable_ZKjsxf9lkh4tgkhAayDvbA_6DOE7E6d';
+  var BASE_FORM='https://darwashsa-ux.github.io/darwash-dte/inscripcion.html';
+
+  var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  var yo=null;
+
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+  function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show');},2000);}
+  function showErr(id,msg){var e=$(id);e.textContent=msg;e.style.display=msg?'block':'none';}
+  function fechaAR(d){if(!d)return '';var p=String(d).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;}
+  function copiar(txt,msg){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(msg);},function(){fb();});
+    }else{fb();}
+    function fb(){
+      var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');toast(msg);}catch(e){toast('No se pudo copiar');}
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ══════════ LOGIN ══════════
+  $('btn-login').addEventListener('click',entrar);
+  $('in-pass').addEventListener('keydown',function(e){if(e.key==='Enter')entrar();});
+
+  async function entrar(){
+    showErr('login-err','');
+    var email=$('in-email').value.trim(), pass=$('in-pass').value;
+    if(!email||!pass){showErr('login-err','Completá email y contraseña.');return;}
+    $('btn-login').disabled=true; $('btn-login').textContent='Entrando…';
+    var r=await sb.auth.signInWithPassword({email:email,password:pass});
+    $('btn-login').disabled=false; $('btn-login').textContent='Entrar';
+    if(r.error){showErr('login-err','No pudimos entrar: '+r.error.message);return;}
+    await cargarPerfil();
+  }
+
+  async function cargarPerfil(){
+    var s=await sb.auth.getUser();
+    if(!s.data||!s.data.user){return mostrarLogin();}
+    var q=await sb.from('inscripcion_admins').select('*').eq('id',s.data.user.id).maybeSingle();
+    if(q.error||!q.data){
+      showErr('login-err','Tu usuario no está dado de alta como admin. Corré el último paso del SQL con tu UID.');
+      await sb.auth.signOut(); return mostrarLogin();
+    }
+    yo=q.data;
+    $('login').classList.add('hidden');
+    $('panel').classList.remove('hidden');
+    $('salir').classList.remove('hidden');
+    $('who').textContent=yo.nombre;
+    cargarRemates(); cargarComisionistas(); cargarAcceso();
+  }
+
+  function mostrarLogin(){
+    $('panel').classList.add('hidden');
+    $('salir').classList.add('hidden');
+    $('who').textContent='';
+    $('login').classList.remove('hidden');
+  }
+
+  $('salir').addEventListener('click',async function(){
+    await sb.auth.signOut(); yo=null; location.reload();
+  });
+
+  // ══════════ TABS ══════════
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){
+    b.addEventListener('click',function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      $('tab-remates').classList.toggle('hidden',b.dataset.t!=='remates');
+      $('tab-comisionistas').classList.toggle('hidden',b.dataset.t!=='comisionistas');
+      $('tab-acceso').classList.toggle('hidden',b.dataset.t!=='acceso');
+    });
+  });
+
+  // ══════════ REMATES ══════════
+  $('btn-remate').addEventListener('click',async function(){
+    var alias=$('r-alias').value.trim(), fecha=$('r-fecha').value;
+    if(!alias||!fecha){toast('Falta nombre o fecha');return;}
+    var b=$('btn-remate'); b.disabled=true; b.textContent='Creando…';
+    var r=await sb.from('inscripcion_remates').insert({
+      alias:alias, fecha:fecha,
+      plaza:$('r-plaza').value.trim()||null,
+      codigo_senasa:$('r-codigo').value.trim()||null,
+      notas:$('r-notas').value.trim()||null
+    });
+    b.disabled=false; b.textContent='Crear remate';
+    if(r.error){toast('Error: '+r.error.message);return;}
+    $('r-alias').value='';$('r-plaza').value='';$('r-codigo').value='';$('r-notas').value='';
+    toast('Remate creado'); cargarRemates();
+  });
+
+  async function cargarRemates(){
+    var q=await sb.from('inscripcion_remates').select('*').order('fecha',{ascending:false});
+    var cont=$('lista-remates');
+    if(q.error){cont.innerHTML='<div class="empty">Error: '+esc(q.error.message)+'</div>';return;}
+    var rs=q.data||[];
+    if(!rs.length){cont.innerHTML='<div class="empty">Todavía no creaste ningún remate.</div>';return;}
+    cont.innerHTML=rs.map(function(r){
+      var ab=r.estado==='ABIERTO';
+      return '<div class="item '+(ab?'abierto':'cerrado')+'">'+
+        '<div class="item-top"><span class="item-title">'+esc(r.alias)+'</span>'+
+        '<span class="pill '+(ab?'g':'n')+'">'+esc(r.estado)+'</span></div>'+
+        '<div class="item-meta">'+fechaAR(r.fecha)+(r.plaza?' · '+esc(r.plaza):'')+'</div>'+
+        '<div class="item-code">'+(r.codigo_senasa?esc(r.codigo_senasa):'Sin código SENASA todavía')+'</div>'+
+        '<div class="item-actions">'+
+          '<button class="mini cy" data-a="link" data-id="'+r.id+'">Copiar link de carga</button>'+
+          '<button class="mini bl" data-a="codigo" data-id="'+r.id+'">'+(r.codigo_senasa?'Cambiar código':'Cargar código')+'</button>'+
+          '<button class="mini" data-a="estado" data-id="'+r.id+'" data-v="'+(ab?'CERRADO':'ABIERTO')+'">'+(ab?'Cerrar':'Reabrir')+'</button>'+
+          '<button class="mini rd" data-a="borrar" data-id="'+r.id+'">Borrar</button>'+
+        '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(cont.querySelectorAll('.mini'),function(b){
+      b.addEventListener('click',function(){accionRemate(b.dataset.a,b.dataset.id,b.dataset.v);});
+    });
+  }
+
+  async function accionRemate(a,id,v){
+    if(a==='link'){
+      copiar(BASE_FORM+'?remate='+id,'Link copiado');
+      return;
+    }
+    if(a==='codigo'){
+      var c=prompt('Código SENASA del remate:');
+      if(c===null)return;
+      var r=await sb.from('inscripcion_remates').update({codigo_senasa:c.trim()||null}).eq('id',id);
+      if(r.error){toast('Error: '+r.error.message);return;}
+      toast('Código actualizado'); cargarRemates(); return;
+    }
+    if(a==='estado'){
+      var r2=await sb.from('inscripcion_remates').update({estado:v}).eq('id',id);
+      if(r2.error){toast('Error: '+r2.error.message);return;}
+      toast(v==='CERRADO'?'Remate cerrado':'Remate reabierto'); cargarRemates(); return;
+    }
+    if(a==='borrar'){
+      if(!confirm('Se borra el remate y TODAS sus inscripciones. ¿Seguro?'))return;
+      var r3=await sb.from('inscripcion_remates').delete().eq('id',id);
+      if(r3.error){toast('Error: '+r3.error.message);return;}
+      toast('Remate borrado'); cargarRemates(); return;
+    }
+  }
+
+  // ══════════ COMISIONISTAS ══════════
+  $('btn-comisionista').addEventListener('click',async function(){
+    showErr('alta-err','');
+    var nombre=$('c-nombre').value.trim().toUpperCase();
+    if(!nombre){showErr('alta-err','Falta el nombre.');return;}
+    var b=$('btn-comisionista'); b.disabled=true; b.textContent='Agregando…';
+    var r=await sb.from('inscripcion_comisionistas').insert({
+      nombre:nombre, telefono:$('c-tel').value.trim()||null, activo:true});
+    b.disabled=false; b.textContent='Agregar a la lista';
+    if(r.error){
+      showErr('alta-err', r.error.code==='23505' ? 'Ya existe un comisionista con ese nombre.' : 'Error: '+r.error.message);
+      return;
+    }
+    $('c-nombre').value='';$('c-tel').value='';
+    toast('Comisionista agregado'); cargarComisionistas();
+  });
+
+  async function cargarComisionistas(){
+    var q=await sb.from('inscripcion_comisionistas').select('*').order('nombre');
+    var cont=$('lista-comisionistas');
+    if(q.error){cont.innerHTML='<div class="empty">Error: '+esc(q.error.message)+'</div>';return;}
+    var cs=q.data||[];
+    if(!cs.length){cont.innerHTML='<div class="empty">Todavía no hay comisionistas cargados.</div>';return;}
+    cont.innerHTML=cs.map(function(c){
+      return '<div class="item '+(c.activo?'activo':'inactivo')+'">'+
+        '<div class="item-top"><span class="item-title">'+esc(c.nombre)+'</span>'+
+        '<span class="pill '+(c.activo?'c':'n')+'">'+(c.activo?'Activo':'Inactivo')+'</span></div>'+
+        (c.telefono?'<div class="item-code">'+esc(c.telefono)+'</div>':'')+
+        '<div class="item-actions">'+
+          '<button class="mini" data-a="activo" data-id="'+c.id+'" data-v="'+(c.activo?'0':'1')+'">'+(c.activo?'Desactivar':'Reactivar')+'</button>'+
+          '<button class="mini rd" data-a="borrar" data-id="'+c.id+'">Borrar</button>'+
+        '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(cont.querySelectorAll('.mini'),function(b){
+      b.addEventListener('click',function(){accionComisionista(b.dataset);});
+    });
+  }
+
+  async function accionComisionista(d){
+    if(d.a==='activo'){
+      var r=await sb.from('inscripcion_comisionistas').update({activo:d.v==='1'}).eq('id',d.id);
+      if(r.error){toast('Error: '+r.error.message);return;}
+      toast(d.v==='1'?'Reactivado':'Desactivado'); cargarComisionistas(); return;
+    }
+    if(d.a==='borrar'){
+      if(!confirm('Si ya anotó hacienda no se va a poder borrar. ¿Seguir?'))return;
+      var r2=await sb.from('inscripcion_comisionistas').delete().eq('id',d.id);
+      if(r2.error){
+        toast(r2.error.code==='23503' ? 'Tiene inscripciones cargadas: desactivalo en vez de borrarlo' : 'Error: '+r2.error.message);
+        return;
+      }
+      toast('Borrado'); cargarComisionistas();
+    }
+  }
+
+  // ══════════ ACCESO ══════════
+  async function cargarAcceso(){
+    $('link-carga').textContent=BASE_FORM;
+    var q=await sb.from('inscripcion_config').select('acceso_pin').eq('id',1).maybeSingle();
+    if(!q.error&&q.data){$('acceso-pin').value=q.data.acceso_pin;}
+  }
+
+  $('btn-link').addEventListener('click',function(){copiar(BASE_FORM,'Link copiado');});
+
+  $('btn-pin').addEventListener('click',async function(){
+    showErr('pin-err','');
+    var pin=$('acceso-pin').value.trim();
+    if(!/^\d{4,8}$/.test(pin)){showErr('pin-err','El PIN tiene que ser de 4 a 8 números.');return;}
+    var b=$('btn-pin'); b.disabled=true; b.textContent='Guardando…';
+    var r=await sb.from('inscripcion_config').update({acceso_pin:pin,updated_at:new Date().toISOString()}).eq('id',1);
+    b.disabled=false; b.textContent='Guardar PIN';
+    if(r.error){showErr('pin-err','Error: '+r.error.message);return;}
+    toast('PIN actualizado');
+  });
+
+  // sesión existente
+  cargarPerfil();
+})();
+</script>
+</body>
+</html>
