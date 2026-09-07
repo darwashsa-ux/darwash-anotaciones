@@ -141,6 +141,13 @@
   .hist-media img{width:100%;height:100%;object-fit:cover;}
   .hist-media .vid{width:44px;height:44px;border-radius:4px;border:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);}
   .hist-del{background:transparent;border:none;color:var(--border-strong);font-size:18px;cursor:pointer;padding:0 2px;line-height:1;}
+  .hist-edit{background:transparent;border:none;color:var(--cyan);font-size:14px;cursor:pointer;padding:0 2px;line-height:1;}
+  .hist-item.editando{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan-soft);}
+  .edit-banner{display:none;background:var(--cyan-soft);border:1px solid var(--cyan);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;color:var(--cyan);align-items:center;justify-content:space-between;gap:10px;}
+  .edit-banner.on{display:flex;}
+  .edit-banner b{font-weight:600;}
+  .edit-cancel{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;}
+  .lf-badge.admin{background:var(--cyan);color:#fff;border-color:var(--cyan);cursor:pointer;}
   .hist-empty{font-size:12.5px;color:var(--muted);text-align:center;padding:16px 10px;border:1.5px dashed var(--border-strong);border-radius:6px;}
 
   /* PIN GATE */
@@ -199,6 +206,10 @@
   </div>
 
   <div id="carga">
+    <div class="edit-banner" id="edit-banner">
+      <span>Editando <b id="edit-nombre"></b></span>
+      <button type="button" class="edit-cancel" id="edit-cancel">Cancelar</button>
+    </div>
     <div class="lf-section-label">Consignante</div>
     <div class="lf-field">
       <label class="lf-field-label">Comisionista</label>
@@ -343,6 +354,22 @@
   var ALL=FAENA.concat(INV);
 
   var remate=null, lineas=[], medios=[], lotes=[], transporte='', guardando=false;
+  var editandoId=null;
+
+  // ══════════ ADMIN ══════════
+  function esAdmin(){
+    try{return localStorage.getItem('drw-admin')==='1';}catch(e){return false;}
+  }
+  function setAdmin(v){
+    try{v?localStorage.setItem('drw-admin','1'):localStorage.removeItem('drw-admin');}catch(e){}
+    pintarBadge();
+  }
+  function pintarBadge(){
+    var b=$('badge'); if(!b)return;
+    if(esAdmin()){b.classList.add('admin'); b.textContent='ADMIN';}
+    else{b.classList.remove('admin');
+      b.textContent=(remate&&remate.estado==='CERRADO')?'Cerrado':'Remate';}
+  }
 
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){
@@ -391,22 +418,41 @@
     var e=$('gate-err'); e.style.display='none';
     var v=$('pin').value.trim();
     if(!v){return;}
-    var q=await sb.from('inscripcion_config').select('acceso_pin').eq('id',1).maybeSingle();
+    var q=await sb.from('inscripcion_config').select('acceso_pin,admin_pin').eq('id',1).maybeSingle();
     if(q.error||!q.data){e.textContent='Sin conexión. Probá de nuevo.';e.style.display='block';return;}
-    if(v!==q.data.acceso_pin){
+    var esAdm=q.data.admin_pin && v===q.data.admin_pin;
+    if(v!==q.data.acceso_pin && !esAdm){
       e.textContent='PIN incorrecto.'; e.style.display='block';
       $('pin').value=''; $('pin').focus(); return;
     }
     try{localStorage.setItem('drw-pin-ok','1');}catch(err){}
+    if(esAdm){setAdmin(true);}
     abrirApp();
   }
+
+  // toggle admin: 4 clicks seguidos en el badge
+  (function(){
+    var n=0,t=null;
+    $('badge').addEventListener('click',async function(){
+      n++; clearTimeout(t); t=setTimeout(function(){n=0;},1200);
+      if(n<4)return;
+      n=0;
+      if(esAdmin()){setAdmin(false);toast('Modo admin desactivado');render();return;}
+      var v=prompt('PIN de administrador');
+      if(!v)return;
+      var q=await sb.from('inscripcion_config').select('admin_pin').eq('id',1).maybeSingle();
+      if(q.error||!q.data||!q.data.admin_pin||v.trim()!==q.data.admin_pin){toast('PIN incorrecto');return;}
+      setAdmin(true); toast('Modo admin activado'); render();
+    });
+  })();
 
   async function abrirApp(){
     $('gate').classList.add('hidden');
     $('app').classList.remove('hidden');
+    pintarBadge();
     if(remate.estado==='CERRADO'){
-      $('carga').classList.add('hidden');
       $('cerrado-aviso').classList.remove('hidden');
+      if(!esAdmin()){$('carga').classList.add('hidden');}
     }
     await cargarComisionistas();
     await refrescar();
@@ -537,6 +583,7 @@
   // ══════════ GUARDAR ══════════
   $('btn-guardar').addEventListener('click',async function(){
     if(!validar())return;
+    if(editandoId){return guardarEdicion();}
     guardando=true; var b=$('btn-guardar');
     b.disabled=true; b.textContent='Guardando…';
 
@@ -583,6 +630,96 @@
     window.scrollTo({top:0,behavior:'smooth'});
   });
 
+  // ══════════ EDICIÓN (ADMIN) ══════════
+  function limpiarForm(){
+    lineas=[]; medios=[]; transporte='';
+    $('cliente').value='';$('plazo').value='';$('pago').value='';$('obs').value='';$('l-kilos').value='';
+    Array.prototype.forEach.call(document.querySelectorAll('#transporte button'),function(x){x.classList.remove('on');});
+    Array.prototype.forEach.call(document.querySelectorAll('#plazo-chips .chip'),function(c){c.classList.remove('on');});
+    setCant(0); renderLineas(); renderMedia();
+  }
+
+  function salirEdicion(){
+    editandoId=null;
+    $('edit-banner').classList.remove('on');
+    $('btn-guardar').textContent='Anotar inscripción';
+    limpiarForm(); validar(); render();
+  }
+  $('edit-cancel').addEventListener('click',salirEdicion);
+
+  function entrarEdicion(id){
+    var l=lotes.find(function(x){return x.id===id;});
+    if(!l)return;
+    editandoId=id;
+    limpiarForm();
+    $('cliente').value=l.cliente||'';
+    $('plazo').value=l.plazo||'';
+    $('pago').value=l.pago||'';
+    $('obs').value=l.obs||'';
+    if(l.comisionista_id){$('operador').value=l.comisionista_id;}
+    transporte=l.camion||'';
+    Array.prototype.forEach.call(document.querySelectorAll('#transporte button'),function(x){
+      if(x.dataset.v===transporte){x.classList.add('on');}});
+    Array.prototype.forEach.call(document.querySelectorAll('#plazo-chips .chip'),function(c){
+      if(c.dataset.v===(l.plazo||'')){c.classList.add('on');}});
+    lineas=l.lineas.map(function(x){return {cat:x.cat,raza:x.raza,cant:x.cant,kilos:x.kilos||''};});
+    renderLineas();
+    $('edit-nombre').textContent=l.cliente;
+    $('edit-banner').classList.add('on');
+    $('btn-guardar').textContent='Guardar cambios';
+    validar(); render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  async function guardarEdicion(){
+    guardando=true; var b=$('btn-guardar');
+    b.disabled=true; b.textContent='Guardando…';
+    var id=editandoId;
+
+    var up=await sb.from('inscripciones').update({
+      comisionista_id:$('operador').value,
+      cliente:$('cliente').value.trim().toUpperCase(),
+      plazo:$('plazo').value.trim()||null,
+      forma_pago:$('pago').value||null,
+      camion:transporte||null,
+      observacion:$('obs').value.trim()||null,
+      updated_at:new Date().toISOString()
+    }).eq('id',id);
+    if(up.error){
+      guardando=false; b.textContent='Guardar cambios'; validar();
+      toast('No se pudo actualizar: '+up.error.message); return;
+    }
+
+    var del=await sb.from('inscripcion_lineas').delete().eq('inscripcion_id',id);
+    if(del.error){
+      guardando=false; b.textContent='Guardar cambios'; validar();
+      toast('Error borrando líneas viejas: '+del.error.message); return;
+    }
+    var rl=await sb.from('inscripcion_lineas').insert(lineas.map(function(l,i){
+      return {inscripcion_id:id,categoria:l.cat,raza:l.raza,cantidad:l.cant,
+              kilos:l.kilos||null,orden:i};
+    }));
+    if(rl.error){
+      guardando=false; b.textContent='Guardar cambios'; validar();
+      toast('ATENCIÓN: líneas borradas y no se reinsertaron: '+rl.error.message); return;
+    }
+
+    if(medios.length){
+      b.textContent='Subiendo archivos…';
+      for(var i=0;i<medios.length;i++){
+        try{ await subirMedio(medios[i],id,i); }catch(e){ toast('Un archivo no se pudo subir'); }
+      }
+    }
+
+    guardando=false;
+    editandoId=null;
+    $('edit-banner').classList.remove('on');
+    b.textContent='Anotar inscripción';
+    limpiarForm(); validar();
+    toast('Inscripción actualizada');
+    await refrescar();
+  }
+
   async function subirMedio(m,insId,idx){
     var ext=m.tipo==='foto'?'jpg':(m.file.type.indexOf('quicktime')>=0?'mov':'mp4');
     var path=remateId+'/'+insId+'/'+Date.now()+'-'+idx+'.'+ext;
@@ -602,6 +739,7 @@
     if(q.error){$('sync').textContent='';toast('No pudimos actualizar');return;}
     lotes=(q.data||[]).map(function(r){
       return {id:r.id, ts:r.created_at, operador:(r.com&&r.com.nombre)||'',
+        comisionista_id:r.comisionista_id,
         cliente:r.cliente, plazo:r.plazo||'', pago:r.forma_pago||'', camion:r.camion||'',
         obs:r.observacion||'', total:r.total_cabezas,
         lineas:(r.lineas||[]).map(function(l){
@@ -666,22 +804,43 @@
           return m.tipo==='foto'
             ? '<a href="'+esc(m.url)+'" target="_blank"><img src="'+esc(m.url)+'"/></a>'
             : '<a href="'+esc(m.url)+'" target="_blank" class="vid">▶</a>';}).join('');
+        var admin=esAdmin();
         var reciente=(Date.now()-new Date(l.ts).getTime())<6*3600*1000;
-        return '<div class="hist-item"><div class="hist-top">'+
+        var puede=admin||(reciente&&remate.estado==='ABIERTO');
+        var acciones=puede
+          ? (admin?'<button class="hist-edit" data-edit="'+l.id+'" type="button" title="Editar">✎</button>':'')+
+            '<button class="hist-del" data-id="'+l.id+'" type="button">×</button>'
+          : '';
+        return '<div class="hist-item'+(editandoId===l.id?' editando':'')+'"><div class="hist-top">'+
           '<span class="hist-cliente">'+esc(l.cliente)+'</span>'+
           '<span class="hist-right"><span class="hist-total">'+l.total+' cab.</span>'+
-          (reciente&&remate.estado==='ABIERTO'?'<button class="hist-del" data-id="'+l.id+'" type="button">×</button>':'')+
+          acciones+
           '</span></div>'+
           '<div class="hist-meta">'+meta+'</div>'+
           '<div class="hist-cats">'+chips+'</div>'+
           (med?'<div class="hist-media">'+med+'</div>':'')+
           '</div>';
       }).join('');
+      Array.prototype.forEach.call(h.querySelectorAll('.hist-edit'),function(b){
+        b.addEventListener('click',function(){entrarEdicion(b.dataset.edit);});
+      });
       Array.prototype.forEach.call(h.querySelectorAll('.hist-del'),function(b){
         b.addEventListener('click',async function(){
-          if(!confirm('¿Borrar esta inscripción?'))return;
-          var r=await sb.from('inscripciones').delete().eq('id',b.dataset.id);
+          var id=b.dataset.id;
+          var lot=lotes.find(function(x){return x.id===id;});
+          if(!confirm('¿Borrar la inscripción de '+((lot&&lot.cliente)||'')+'?'))return;
+          var paths=((lot&&lot.media)||[]).map(function(m){return m.path;}).filter(Boolean);
+          if(paths.length){
+            try{ await sb.storage.from('tropas').remove(paths); }catch(e){}
+          }
+          var r=await sb.from('inscripciones').delete().eq('id',id);
           if(r.error){toast('No se pudo borrar: '+r.error.message);return;}
+          if(editandoId===id){
+            editandoId=null;
+            $('edit-banner').classList.remove('on');
+            $('btn-guardar').textContent='Anotar inscripción';
+            limpiarForm();
+          }
           toast('Inscripción borrada'); refrescar();
         });
       });
