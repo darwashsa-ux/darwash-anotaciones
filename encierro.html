@@ -101,6 +101,11 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:6px;opacity:0;pointer-events:none;transition:.22s;z-index:100;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+  .croquis-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;}
+  .croquis-wrap svg{width:100%;height:auto;display:block;}
+  .cq-leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:10px;font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--text-2);text-transform:uppercase;}
+  .cq-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;border:1.5px solid;vertical-align:-2px;margin-right:5px;}
+  .cq-c rect{transition:opacity .15s;}
   .print-head{display:none;}
   @media print{
     @page{size:A4 portrait;margin:10mm;}
@@ -118,6 +123,8 @@
     table.enc tr{page-break-inside:avoid;}
     table.enc tr.excl{display:none;}
     .ncorr{border:none;background:none!important;width:auto;padding:0;font-size:10px;}
+    .sec-croquis{page-break-before:always;}
+    .croquis-wrap{border:none;padding:0;}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 </style>
@@ -183,6 +190,11 @@
 
   <div class="lf-section-label">Plan de encierro · orden de remate</div>
   <div class="tabla-wrap"><table class="enc" id="tabla"></table></div>
+
+  <div class="sec-croquis">
+    <div class="lf-section-label">Croquis · Feria Washington</div>
+    <div class="croquis-wrap"><div class="cq-leg" id="cq-leg"></div><div id="croquis"></div></div>
+  </div>
 
   <div class="acciones">
     <button class="lf-btn btn-print" id="btn-print">Imprimir</button>
@@ -360,7 +372,7 @@
       out.push((j-i>1?(j-i)+'×':'')+a[i]);i=j;}
     return out.join(' + ');
   }
-  function novLotes(){return lotes.filter(function(L){return L.bk==='NOV-M'||L.bk==='NOV-H';});}
+  function novLotes(){return lotes.filter(function(L){return L.bk==='NOV-M';});}
   function premSugerido(){
     var ls=novLotes(); if(!ls.length)return '';
     var conKg=ls.filter(function(L){return kilosProm(L)!=null&&L.cab>=5;});
@@ -368,7 +380,7 @@
     return ls.slice().sort(function(a,b){return b.cab-a.cab;})[0].key;
   }
   function premKey(){
-    var k=st.prem.key; if(k&&porKey[k])return k; return premSugerido();
+    var k=st.prem.key; if(k&&porKey[k]&&porKey[k].bk==='NOV-M')return k; return premSugerido();
   }
   function ordenBloque(b){
     var ls=lotes.filter(function(L){return L.bk===b.k;});
@@ -484,6 +496,7 @@
     $('tabla').innerHTML=html+'</tbody>';
     $('k-lotes').textContent=nLotes;
     renderRefs(p);
+    renderCroquis(p);
     $('print-head').innerHTML='Encierro · '+esc(remateActual?remateActual.alias:'')+
       '<small>'+fechaAR(remateActual&&remateActual.fecha)+' · '+totalCab+' cab · corrales de '+T+' · '+p.ult+' corrales</small>';
   }
@@ -496,6 +509,99 @@
     var to=m.TORO?m.TORO.ini:null; chip('Toros arrancan en',to,to!=null&&to>=REF.TORO[0]-4&&to<=REF.TORO[1]+4);
     chip('Último corral',p.ult+' / '+CORRALES_FERIA,p.ult<=CORRALES_FERIA);
     $('refs').innerHTML=h.join('');
+  }
+
+
+  // ══ CROQUIS ══ layout Feria Washington (mismo plano que remates-app)
+  var LAYOUT=(function(){
+    var L=[];
+    function add(n,x,y,w,h){L.push({n:String(n),x:x,y:y,w:w,h:h});}
+    [98,97,96,95,94,93,92,91,90].forEach(function(n,i){add(n,[4,56,112,164,220,272,328,380,436][i],4,48,55);});
+    [89,88,87,86,85,84,83,82,81,80].forEach(function(n,i){add(n,[648,704,756,812,864,920,972,1028,1080,1136][i],4,48,55);});
+    for(var k=0;k<14;k++)add(153-k,0,90+54*k,102,48);
+    var yA=[88,144,196,252,304,360,412,468,520,576,628,684,736,792];
+    var yB=[92,144,200,252,308,360,416,468,524,576,632,684,740,792];
+    for(k=0;k<14;k++){add(99+k,160,yA[k],80,48);add(126-k,244,yB[k],80,48);}
+    var yC=[220,276,328,384,436,492,544,600,652];
+    for(k=0;k<9;k++){add(127+k,380,yC[k],80,48);add(23-k,468,yC[k],80,48);}
+    var yD=[168,224,276,332,384,440,492,548,600,656,708,764,816,868];
+    var yE=[168,220,276,328,384,436,492,544,600,652,708,760,816,868];
+    for(k=0;k<14;k++){add(1+k,616,yD[k],80,48);add(24+k,k===13?708:704,yE[k],80,48);}
+    var yF=[108,164,216,272,324,380,432,488,540,596,648,704,756,812,864];
+    for(k=0;k<15;k++){add(52-k,840,yF[k],80,48);add(53+k,928,yF[k],80,48);}
+    var yG=[76,132,184,240,292,348,400,456,508,564,616,672];
+    for(k=0;k<12;k++)add(79-k,1084,yG[k],102,48);
+    [139,138,137,136].forEach(function(n,i){add(n,[8,80,152,224][i],888,66,102);});
+    return L;
+  })();
+  var BALANZA={x:412,y:168,w:102,h:48};
+  var COLORES={
+    PREM:{f:'#FFD966',s:'#A87A10',l:'Premium'},
+    'NOV-M':{f:'#DDF3E8',s:'#00A86B',l:'Nov mestizo'},
+    'NOV-H':{f:'#CDEBE0',s:'#0B7A58',l:'Nov holando'},
+    MEJ:{f:'#E0F6F6',s:'#00A3A4',l:'MEJ'},
+    VQ:{f:'#F9E1D7',s:'#D9825B',l:'Vaquillona'},
+    'VACA-M':{f:'#E3ECF8',s:'#2E7AC7',l:'Vaca mestiza'},
+    'VACA-H':{f:'#D3DEF2',s:'#1F4F96',l:'Vaca holando'},
+    TORO:{f:'#ECE3F6',s:'#7A4FB0',l:'Toro'},
+    INV:{f:'#EFE7DA',s:'#8C6A3A',l:'Invernada'},
+    CC:{f:'#F5E2EC',s:'#B0507E',l:'CC / preñada'},
+    OTRO:{f:'#EEEDE8',s:'#8A8880',l:'Otros'}
+  };
+  function colorKey(bk){
+    if(bk==='NOV-M'||bk==='NOV-H'||bk==='VACA-M'||bk==='VACA-H')return bk;
+    var p=bk.split('-')[0];
+    if(p==='MEJ'||p==='VQ'||p==='TORO'||p==='CC')return p;
+    if(p==='TM'||p==='TH')return 'INV';
+    return 'OTRO';
+  }
+  function asignaciones(p){
+    var m={};
+    p.rows.forEach(function(r){
+      if(r.t==='prem'){m[1]={ck:'PREM',cli:r.L.cli,cab:r.cab,rz:r.L.bk==='NOV-H'?'HOL':'MEST'};return;}
+      if(r.t==='fijo'){m[r.desde]={ck:'VACA-H',cli:r.nom,cab:null};return;}
+      if(r.t!=='lote'||r.excl)return;
+      for(var i=0;i<r.sizes.length;i++){
+        m[r.desde+i]={ck:colorKey(r.L.bk),cli:r.L.cli,cab:r.sizes[i]};
+      }
+    });
+    return m;
+  }
+  function svgEsc(s){return esc(s);}
+  function renderCroquis(p){
+    var m=asignaciones(p), usados={};
+    Object.keys(m).forEach(function(k){usados[m[k].ck]=1;});
+    $('cq-leg').innerHTML=Object.keys(COLORES).filter(function(k){return usados[k];}).map(function(k){
+      var c=COLORES[k];return '<span><i style="background:'+c.f+';border-color:'+c.s+'"></i>'+c.l+'</span>';}).join('')+
+      '<span><i style="background:#fff;border-color:#D4D2C8"></i>Libre</span>';
+    var s='<svg viewBox="-6 -6 1200 1004" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,Consolas,monospace">';
+    s+='<rect x="'+BALANZA.x+'" y="'+BALANZA.y+'" width="'+BALANZA.w+'" height="'+BALANZA.h+'" rx="6" fill="#F5F4EE" stroke="#B5B3A8" stroke-dasharray="4 3"/>'+
+       '<text x="'+(BALANZA.x+BALANZA.w/2)+'" y="'+(BALANZA.y+28)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#8A8880" letter-spacing="1.5">BALANZA</text>';
+    LAYOUT.forEach(function(c){
+      var a=m[Number(c.n)], col=a?COLORES[a.ck]:null;
+      var fill=col?col.f:'#FFFFFF', st=col?col.s:'#D4D2C8';
+      var tip=a?('Corral '+c.n+' · '+a.cli+(a.cab!=null?' · '+a.cab+' cab':'')):('Corral '+c.n+' · libre');
+      s+='<g class="cq-c"><title>'+svgEsc(tip)+'</title>'+
+        '<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" rx="6" fill="'+fill+'" stroke="'+st+'" stroke-width="'+(a?1.6:1)+'"/>';
+      if(!a){
+        s+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+4)+'" text-anchor="middle" font-size="11" fill="#8A8880">'+c.n+'</text></g>';
+        return;
+      }
+      var maxCh=Math.max(4,Math.floor((c.w-8)/5.6));
+      var nom=a.cli.length>maxCh?a.cli.slice(0,maxCh-1)+'…':a.cli;
+      var tall=c.h>c.w;
+      s+='<text x="'+(c.x+5)+'" y="'+(c.y+13)+'" font-size="11" font-weight="700" fill="'+st+'">'+c.n+'</text>';
+      if(a.cab!=null){
+        s+='<text x="'+(c.x+c.w-5)+'" y="'+(c.y+13)+'" text-anchor="end" font-size="10.5" font-weight="700" fill="#1A1A1A">'+a.cab+'</text>';
+      }
+      if(c.h<50&&c.w<50){ // fila de arriba (48x55): sin espacio para nombre largo
+        nom=a.cli.length>7?a.cli.slice(0,6)+'…':a.cli;
+      }
+      s+='<text x="'+(c.x+5)+'" y="'+(c.y+(tall?c.h/2+4:c.h-10))+'" font-size="9" fill="#4A4A48">'+svgEsc(nom)+'</text>';
+      s+='</g>';
+    });
+    s+='</svg>';
+    $('croquis').innerHTML=s;
   }
 
   // ══ EDICIÓN ══
