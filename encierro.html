@@ -42,7 +42,7 @@
   .lf-select:focus,.lf-input:focus{border-color:var(--cyan);}
   .lf-select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;}
 
-  .panel{display:grid;grid-template-columns:2fr 1fr 2fr 90px 110px;gap:10px;align-items:end;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:14px;}
+  .panel{display:grid;grid-template-columns:2fr 1fr 2fr 80px 100px 110px;gap:10px;align-items:end;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:14px;}
   @media(max-width:900px){.panel{grid-template-columns:1fr 1fr;}}
   .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);padding:11px 0;cursor:pointer;}
   .chk input{width:18px;height:18px;accent-color:var(--amber);}
@@ -74,6 +74,7 @@
   table.enc tr.prem td{background:var(--amber-soft);}
   table.enc tr.prem td.corr{color:var(--amber);}
   table.enc tr.fijo td{background:#FAFAF6;}
+  table.enc tr.pulm td{background:repeating-linear-gradient(45deg,#FAFAF6,#FAFAF6 6px,#F0EFE9 6px,#F0EFE9 12px);}
   table.enc tr.excl td{opacity:.45;text-decoration:line-through;}
   table.enc tr.excl td.act{text-decoration:none;opacity:1;}
   .ncorr{width:52px;text-align:center;font-family:var(--mono);font-weight:600;font-size:13px;padding:5px;border:1px solid var(--border);border-radius:5px;background:var(--surface);}
@@ -177,6 +178,10 @@
       <input class="lf-input" id="f-prem-cab" type="number" min="1" max="30" value="6"/>
     </div>
     <label class="chk"><input type="checkbox" id="f-prem-on" checked/> Premium</label>
+    <div>
+      <label class="lf-field-label">Pulmón entre grupos</label>
+      <input class="lf-input" id="f-pulmon" type="number" min="0" max="6" value="2"/>
+    </div>
   </div>
 
   <div class="kpis">
@@ -203,7 +208,7 @@
     <button class="lf-btn btn-reset" id="btn-reset">Volver al automático</button>
   </div>
   <div class="nota">
-    ▲▼ cambia el orden dentro del grupo · el número de corrales se puede pisar a mano (queda en azul) · ✕ saca el lote del encierro.
+    ▲▼ cambia el orden dentro del grupo · el número de corrales se puede pisar a mano (queda en azul) · ✕ saca el lote del encierro. Pulmones (corrales libres) antes de VQ, de vaca y de invernada.
     Los ajustes quedan guardados en este navegador para este remate. Reparto: corrales llenos y el resto al último; si el resto es menor al 30% del corral, se absorbe entre los anteriores.
   </div>
 </div>
@@ -240,6 +245,8 @@
     {k:'OTRO',  lab:'Otras categorías',           cat:null,           rz:null,grp:'OTRO'}
   ];
   var REF={NOVMEJ:20, VQ:34, TORO:[50,53]};
+  // pulmones: corrales libres que se dejan ANTES de arrancar estos grupos
+  var PULMON_ANTES={VQ:1, VACA:1, INV:1};
   var CORRALES_FERIA=153;
 
   var remates=[], remateActual=null, lotes=[], porKey={}, totalCab=0, st=null;
@@ -288,10 +295,10 @@
 
   // ══ ESTADO (ajustes manuales por remate) ══
   function stKey(){return 'drw-encierro-'+(remateActual?remateActual.id:'x');}
-  function stDefault(){return {tam:'',prem:{on:true,key:'',cab:6},orden:{},ncorr:{},excl:{}};}
+  function stDefault(){return {tam:'',pulmon:2,prem:{on:true,key:'',cab:6},orden:{},ncorr:{},excl:{}};}
   function stLoad(){
     try{var s=JSON.parse(localStorage.getItem(stKey())||'null');
-      if(s&&s.prem&&s.orden){st=s;return;}}catch(e){}
+      if(s&&s.prem&&s.orden){if(s.pulmon==null)s.pulmon=2;st=s;return;}}catch(e){}
     st=stDefault();
   }
   function stSave(){try{localStorage.setItem(stKey(),JSON.stringify(st));}catch(e){}}
@@ -402,9 +409,12 @@
       out.push({t:'prem',L:P,desde:1,hasta:1,cab:pc,sizes:[pc]});
       c=2;
     }
-    var marcas={};
+    var marcas={}, lastGrp=null, P=Math.max(0,Number(st.pulmon)||0);
     BLOQUES.forEach(function(b){
       var ls=ordenBloque(b); if(!ls.length)return;
+      if(P&&PULMON_ANTES[b.grp]&&lastGrp&&lastGrp!==b.grp){
+        out.push({t:'pulmon',desde:c,hasta:c+P-1});c+=P;
+      }
       var ini=c, items=[], cabB=0;
       if(b.fijo){
         ls.forEach(function(L){cabB+=L.cab;});
@@ -427,6 +437,7 @@
              (usados?' · corrales '+ini+(usados>1?'–'+(c-1):''):'')});
       out=out.concat(items);
       if(usados){
+        lastGrp=b.grp;
         var m=marcas[b.grp]=marcas[b.grp]||{ini:ini,fin:c-1};
         m.fin=c-1;
       }
@@ -448,6 +459,7 @@
     $('f-prem').value=premKey()||'';
     $('f-prem-cab').value=st.prem.cab;
     $('f-prem-on').checked=!!st.prem.on;
+    $('f-pulmon').value=st.pulmon;
   }
 
   function render(){
@@ -464,6 +476,11 @@
     p.rows.forEach(function(r){
       if(r.t==='blk'){
         html+='<tr class="blk"><td colspan="9">'+esc(r.lab)+'<span>'+esc(r.info)+'</span></td></tr>';return;
+      }
+      if(r.t==='pulmon'){
+        html+='<tr class="pulm"><td class="corr">'+r.desde+(r.hasta>r.desde?'–'+r.hasta:'')+'</td><td class="no-print"></td>'+
+          '<td class="cli" colspan="7" style="color:var(--muted);font-weight:500">PULMÓN · libre</td></tr>';
+        return;
       }
       if(r.t==='fijo'){
         html+='<tr class="fijo"><td class="corr">'+r.desde+'</td><td class="no-print">1</td>'+
@@ -546,7 +563,8 @@
     TORO:{f:'#ECE3F6',s:'#7A4FB0',l:'Toro'},
     INV:{f:'#EFE7DA',s:'#8C6A3A',l:'Invernada'},
     CC:{f:'#F5E2EC',s:'#B0507E',l:'CC / preñada'},
-    OTRO:{f:'#EEEDE8',s:'#8A8880',l:'Otros'}
+    OTRO:{f:'#EEEDE8',s:'#8A8880',l:'Otros'},
+    PULMON:{f:'url(#hatch)',s:'#B5B3A8',l:'Pulmón'}
   };
   function colorKey(bk){
     if(bk==='NOV-M'||bk==='NOV-H'||bk==='VACA-M'||bk==='VACA-H')return bk;
@@ -558,6 +576,7 @@
   function asignaciones(p){
     var m={};
     p.rows.forEach(function(r){
+      if(r.t==='pulmon'){for(var q=r.desde;q<=r.hasta;q++)m[q]={ck:'PULMON',cli:'PULMÓN',cab:null};return;}
       if(r.t==='prem'){m[1]={ck:'PREM',cli:r.L.cli,cab:r.cab,rz:r.L.bk==='NOV-H'?'HOL':'MEST'};return;}
       if(r.t==='fijo'){m[r.desde]={ck:'VACA-H',cli:r.nom,cab:null};return;}
       if(r.t!=='lote'||r.excl)return;
@@ -572,9 +591,10 @@
     var m=asignaciones(p), usados={};
     Object.keys(m).forEach(function(k){usados[m[k].ck]=1;});
     $('cq-leg').innerHTML=Object.keys(COLORES).filter(function(k){return usados[k];}).map(function(k){
-      var c=COLORES[k];return '<span><i style="background:'+c.f+';border-color:'+c.s+'"></i>'+c.l+'</span>';}).join('')+
+      var c=COLORES[k];return '<span><i style="background:'+(k==='PULMON'?'repeating-linear-gradient(45deg,#F5F4EE,#F5F4EE 3px,#DDDBD2 3px,#DDDBD2 6px)':c.f)+';border-color:'+c.s+'"></i>'+c.l+'</span>';}).join('')+
       '<span><i style="background:#fff;border-color:#D4D2C8"></i>Libre</span>';
-    var s='<svg viewBox="-6 -6 1200 1004" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,Consolas,monospace">';
+    var s='<svg viewBox="-6 -6 1200 1004" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,Consolas,monospace">'+
+      '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#F5F4EE"/><line x1="0" y1="0" x2="0" y2="8" stroke="#DDDBD2" stroke-width="3"/></pattern></defs>';
     s+='<rect x="'+BALANZA.x+'" y="'+BALANZA.y+'" width="'+BALANZA.w+'" height="'+BALANZA.h+'" rx="6" fill="#F5F4EE" stroke="#B5B3A8" stroke-dasharray="4 3"/>'+
        '<text x="'+(BALANZA.x+BALANZA.w/2)+'" y="'+(BALANZA.y+28)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#8A8880" letter-spacing="1.5">BALANZA</text>';
     LAYOUT.forEach(function(c){
@@ -628,6 +648,7 @@
   $('f-tam').addEventListener('change',function(){st.tam=this.value;st.ncorr={};stSave();render();});
   $('f-prem').addEventListener('change',function(){st.prem.key=this.value;stSave();render();});
   $('f-prem-cab').addEventListener('change',function(){var v=parseInt(this.value,10);st.prem.cab=v>0?v:6;stSave();render();});
+  $('f-pulmon').addEventListener('change',function(){var v=parseInt(this.value,10);st.pulmon=v>=0?v:2;stSave();render();});
   $('f-prem-on').addEventListener('change',function(){st.prem.on=this.checked;stSave();render();});
   $('btn-reset').addEventListener('click',function(){
     st=stDefault();stSave();syncControles();render();toast('Plan automático');});
@@ -637,6 +658,7 @@
     var p=armar(), m=[['CORRAL','GRUPO','PRODUCTOR','RAZA','CAB','N CORR','REPARTO','KILOS','COMISIONISTA']], grupo='';
     p.rows.forEach(function(r){
       if(r.t==='blk'){grupo=r.lab;return;}
+      if(r.t==='pulmon'){m.push([r.desde===r.hasta?r.desde:r.desde+'-'+r.hasta,'PULMON','','','',r.hasta-r.desde+1,'','','']);return;}
       if(r.t==='fijo'){m.push([r.desde,grupo,'VACA HOLANDO '+r.nom,'HOLANDO',r.cab!=null?r.cab:'',1,'',
         r.cab!=null?r.ls.map(function(L){return L.cli+' ('+L.cab+')';}).join(', '):'','']);return;}
       if(r.excl)return;
